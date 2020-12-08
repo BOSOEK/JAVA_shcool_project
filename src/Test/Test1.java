@@ -1,25 +1,13 @@
 package Test;
 
+import java.awt.Color;
 import java.awt.EventQueue;
-
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-import java.awt.BorderLayout;
-
-import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JTextField;
-import javax.swing.JTextPane;
-import javax.swing.border.Border;
-import javax.swing.border.LineBorder;
-import javax.swing.JTextArea;
-import javax.swing.JLabel;
 import java.awt.Font;
 import java.awt.Graphics;
-import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -30,9 +18,17 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.awt.Color;
-import java.awt.SystemColor;
+
+import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+import javax.swing.JTextPane;
 import javax.swing.SwingConstants;
+import javax.swing.border.LineBorder;
 
 public class Test1 {
 
@@ -68,7 +64,6 @@ public class Test1 {
 	private String[] title = new String[4];
 	private int[] port = new int[4];
 	private int[] player = new int[4];
-	private String[] ip = new String[4];
 	
 	Connection cont = null;
 	Statement stt = null;
@@ -86,6 +81,11 @@ public class Test1 {
 		frame = new JFrame();
 		frame.setBounds(100, 100, 1018, 600);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				System.exit(0);
+			}
+		});
 		frame.getContentPane().setLayout(null);
 		frame.setLocationRelativeTo(null);
 		frame.setResizable(false);
@@ -94,7 +94,19 @@ public class Test1 {
 		frame.setIconImage(img.getImage());
 		
 		ImageIcon first_backimg = new ImageIcon("./Image/first_backimg2.jpg");
-		
+		/*ImageIcon img1 = new ImageIcon("./Image/play_last.jpg");
+		JPanel play_panel = new JPanel() {
+			public void paintComponent(Graphics g) {
+				g.drawImage(img1.getImage(), 0, 0, null);
+				setOpaque(false);
+				super.paintComponent(g);
+			}
+		};
+		play_panel.setBackground(Color.WHITE);
+		play_panel.setBounds(0, 0, 832, 993);
+		play_panel.setVisible(false);
+		frame.getContentPane().add(play_panel);
+		play_panel.setLayout(null);*/
 		
 		JPanel menu_panel = new JPanel() {
 			public void paintComponent(Graphics g) {
@@ -129,6 +141,8 @@ public class Test1 {
 		menu_panel.setBackground(Color.GRAY);
 		menu_panel.setLayout(null);
 		menu_panel.setVisible(false);
+		
+		
 		
 		
 		JButton play_button1 = new JButton("Play");
@@ -253,13 +267,11 @@ public class Test1 {
 							title[i] = rst.getString(2);
 							port[i] = rst.getInt(3);
 							player[i] = rst.getInt(4);
-							ip[i] = rst.getString(5);
 						} else {
 							creater[i] = null;
 							title[i] = null;
 							port[i] = 0;
 							player[i] = 0;
-							ip[i] = null;
 						}
 					} catch(SQLException e1) {
 						e1.printStackTrace();
@@ -310,13 +322,11 @@ public class Test1 {
 							title[i] = rst.getString(2);
 							port[i] = rst.getInt(3);
 							player[i] = rst.getInt(4);
-							ip[i] = rst.getString(5);
 						} else {
 							creater[i] = null;
 							title[i] = null;
 							port[i] = 0;
 							player[i] = 0;
-							ip[i] = null;
 						}
 					} catch(SQLException e1) {
 						e1.printStackTrace();
@@ -349,6 +359,106 @@ public class Test1 {
 			}
 		});
 		menu_panel.add(menu_next_button);
+
+		
+		JPanel wait_panel = new JPanel();
+		wait_panel.setBounds(0, 0, 1012, 565);
+		frame.getContentPane().add(wait_panel);
+		wait_panel.setVisible(false);
+		wait_panel.setLayout(null);
+		
+
+		
+		Hosting_button.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				//창 바꿈
+				wait_panel.setVisible(true);
+				menu_panel.setVisible(false);
+				
+			}
+		});
+		
+		JLabel lblNewLabel_9 = new JLabel("Wait.....");
+		lblNewLabel_9.setFont(new Font("Jokerman", Font.PLAIN, 40));
+		lblNewLabel_9.setHorizontalAlignment(SwingConstants.CENTER);
+		lblNewLabel_9.setBounds(382, 141, 199, 62);
+		wait_panel.add(lblNewLabel_9);
+		
+		JButton wait_back_button = new JButton("Host");
+		wait_back_button.setFont(new Font("Jokerman", Font.PLAIN, 35));
+		wait_back_button.setBounds(414, 273, 118, 52);
+		wait_panel.add(wait_back_button);
+		
+		wait_back_button.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				String title = menu_title.getText();
+				int port = Integer.parseInt(menu_port.getText());
+				
+				//sql에 정보 저장
+				Connection con = null;
+				DBConnect dc = new DBConnect();
+				con = dc.makeCon();
+				ResultSet rs = null;
+				PreparedStatement ps = null;
+				String sql = "insert into PRICK values(?, ?, ?, ?)";
+				try {
+					ps = con.prepareStatement(sql);
+					ps.setString(1, nickName);
+					ps.setString(2,  title);
+					ps.setInt(3, port);
+					ps.setInt(4, 1);
+					if(ps.executeUpdate()>=1) {
+						System.out.println("insert 성공");
+					} else {
+						System.out.println("insert 실패");
+					}
+				} catch (SQLException e1) {
+					System.out.println("오류뜸");
+					e1.printStackTrace();
+				}
+				makePort = port;
+				
+				ServerSocket serverSocket = null;
+				Socket socket = null;
+				
+				try {
+					serverSocket = new ServerSocket(makePort);
+					System.out.println("서버 대기");
+					socket = serverSocket.accept();
+					System.out.println("서버 연결됨");
+					wait_panel.setVisible(false);
+					gamePlay();
+					
+					//플레이어 값 2로 수정
+					sql = "select * from PRICK where port=?";
+					try {
+						ps = con.prepareStatement(sql);
+						ps.setInt(1, makePort);
+						rs = ps.executeQuery();
+						
+						if(rs.next()) {
+							sql = "update PRICK set player=? where port=?";
+							ps = con.prepareStatement(sql);
+							ps.setInt(1, 2);
+							ps.setInt(2, makePort);
+							if(ps.executeUpdate()>=1) {
+								System.out.println("update 성공");
+							} else {
+								System.out.println("update 실패");
+							}
+						}
+					} catch (SQLException e1) {
+						e1.printStackTrace();
+					}
+					
+				} catch(Exception e1) {
+					System.out.println(e1.getMessage());
+				}
+				
+				
+				
+			}
+		});
 		
 		JPanel Start_panel = new JPanel() {
 			public void paintComponent(Graphics g) {
@@ -403,56 +513,7 @@ public class Test1 {
 		textPane.setBounds(746, 287, 112, 58);
 		Start_panel.add(textPane);
 		textPane.setOpaque(false);
-		
-		JPanel wait_panel = new JPanel();
-		wait_panel.setBounds(0, 0, 1012, 565);
-		frame.getContentPane().add(wait_panel);
-		wait_panel.setVisible(false);
-		wait_panel.setLayout(null);
-		
-		JLabel lblNewLabel_9 = new JLabel("Wait.....");
-		lblNewLabel_9.setFont(new Font("Jokerman", Font.PLAIN, 40));
-		lblNewLabel_9.setHorizontalAlignment(SwingConstants.CENTER);
-		lblNewLabel_9.setBounds(382, 141, 199, 62);
-		wait_panel.add(lblNewLabel_9);
-		
-		JButton wait_back_button = new JButton("Back");
-		wait_back_button.setFont(new Font("Jokerman", Font.PLAIN, 35));
-		wait_back_button.setBounds(414, 273, 118, 52);
-		wait_panel.add(wait_back_button);
 		LineBorder Start_panel_border = new LineBorder(Color.WHITE, 1);
-		
-		wait_back_button.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				Connection con = null;
-				DBConnect dc = new DBConnect();
-				con = dc.makeCon();
-				ResultSet rs = null;
-				PreparedStatement ps = null;
-				String sql = "select * from PRICK where port=?";
-				try {
-					ps = con.prepareStatement(sql);
-					ps.setInt(1, makePort);
-					rs = ps.executeQuery();
-					if(rs.next()) {
-						sql = "delete from PRICK where port=?";
-						ps=con.prepareStatement(sql);
-						ps.setInt(1, makePort);
-						if(ps.executeUpdate()>0) {
-							System.out.println("delete 성공");
-						} else {
-							System.out.println("delete 실패");
-						}
-					}
-				} catch (SQLException e1) {
-					e1.printStackTrace();
-				}
-				makePort = 0;
-				//menu 패널로 나가기
-				wait_panel.setVisible(false);
-				menu_panel.setVisible(true);
-			}
-		});
 
 		go_inRoom_Button.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -462,58 +523,117 @@ public class Test1 {
 			}
 		});
 		
-		
-
-		
-		Hosting_button.addActionListener(new ActionListener() {
+		play_button1.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				String title = menu_title.getText();
-				int port = Integer.parseInt(menu_port.getText());
-				InetAddress local = null;
-				try {
-					local = InetAddress.getLocalHost();
-				} catch (UnknownHostException e2) {
-					// TODO Auto-generated catch block
-					e2.printStackTrace();
-				}
-				String IpAddress = local.getHostAddress();
-				//sql에 정보 저장
-				Connection con = null;
-				DBConnect dc = new DBConnect();
-				con = dc.makeCon();
-				
-				PreparedStatement ps = null;
-				String sql = "insert into PRICK values(?, ?, ?, ?, ?)";
-				try {
-					ps = con.prepareStatement(sql);
-					ps.setString(1, nickName);
-					ps.setString(2,  title);
-					ps.setInt(3, port);
-					ps.setInt(4, 1);
-					ps.setString(5, IpAddress);
-					if(ps.executeUpdate()>=1) {
-						System.out.println("insert 성공");
-					} else {
-						System.out.println("insert 실패");
+				if(player[0] == 1) {
+					Socket socket = null;
+					String myIp = null;
+					InetAddress local = null;
+					try {
+						local = InetAddress.getLocalHost();
+					} catch (UnknownHostException e1) {
+						e1.printStackTrace();
 					}
-				} catch (SQLException e1) {
-					System.out.println("오류뜸");
-					e1.printStackTrace();
+					myIp = local.getHostAddress();
+					
+					try {
+						socket = new Socket(myIp, port[0]);
+						menu_panel.setVisible(false);
+						gamePlay();
+					} catch (Exception e1) {
+						System.out.println(e1.getMessage());
+					}
 				}
-				makePort = port;
-				//창 바꿈
-				menu_panel.setVisible(false);
-				wait_panel.setVisible(true);
-				
-				
-				//서버 열기
-				ServerSocket serverSocket = null;
-				Socket socket = null;
-				
-				
-				
 			}
 		});
+		
+		play_button2.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(player[1] == 1) {
+					Socket socket = null;
+					String myIp = null;
+					InetAddress local = null;
+					try {
+						local = InetAddress.getLocalHost();
+					} catch (UnknownHostException e1) {
+						e1.printStackTrace();
+					}
+					myIp = local.getHostAddress();
+					
+					try {
+						socket = new Socket(myIp, port[1]);
+						menu_panel.setVisible(false);
+						gamePlay();
+					} catch (Exception e1) {
+						System.out.println(e1.getMessage());
+					}
+				}
+			}
+		});
+		
+		play_button3.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(player[2] == 1) {
+					Socket socket = null;
+					String myIp = null;
+					InetAddress local = null;
+					try {
+						local = InetAddress.getLocalHost();
+					} catch (UnknownHostException e1) {
+						e1.printStackTrace();
+					}
+					myIp = local.getHostAddress();
+					
+					try {
+						socket = new Socket(myIp, port[2]);
+						menu_panel.setVisible(false);
+						gamePlay();
+					} catch (Exception e1) {
+						System.out.println(e1.getMessage());
+					}
+				}
+			}
+		});
+		
+		play_button4.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(player[3] == 1) {
+					Socket socket = null;
+					String myIp = null;
+					InetAddress local = null;
+					try {
+						local = InetAddress.getLocalHost();
+					} catch (UnknownHostException e1) {
+						e1.printStackTrace();
+					}
+					myIp = local.getHostAddress();
+					
+					try {
+						socket = new Socket(myIp, port[3]);
+						menu_panel.setVisible(false);
+						gamePlay();
+					} catch (Exception e1) {
+						System.out.println(e1.getMessage());
+					}
+				}
+			}
+		});
+		
 	}
-	
+	void gamePlay() {
+		frame.setBounds(600, 50, 730, 1040);
+		ImageIcon img1 = new ImageIcon("./Image/play_last_origin.jpg");
+		JPanel play_panel = new JPanel() {
+			public void paintComponent(Graphics g) {
+				g.drawImage(img1.getImage(), 0, 0, null);
+				setOpaque(false);
+				super.paintComponent(g);
+			}
+		};
+		play_panel.setBackground(Color.WHITE);
+		play_panel.setBounds(0, 0, 832, 993);
+		play_panel.setVisible(true);
+		frame.getContentPane().add(play_panel);
+		play_panel.setLayout(null);
+	}
 }
