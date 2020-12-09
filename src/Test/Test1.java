@@ -6,8 +6,15 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -65,9 +72,13 @@ public class Test1 {
 	private int[] port = new int[4];
 	private int[] player = new int[4];
 	
-	Connection cont = null;
-	Statement stt = null;
-	ResultSet rst = null;
+	Connection con = null;
+	Statement st = null;
+	ResultSet rs = null;
+	PreparedStatement ps = null;
+	
+	Socket socket = null;
+	ServerSocket serverSocket = null;
 	
 	public Test1() {
 		initialize();
@@ -123,10 +134,10 @@ public class Test1 {
 				
 				try {
 					Class.forName("oracle.jdbc.driver.OracleDriver");
-					cont = DriverManager.getConnection(url, "BOSO", "12345");
+					con = DriverManager.getConnection(url, "BOSO", "12345");
 					System.out.println("DB 연결 성공");
-					stt = cont.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
-					rst = stt.executeQuery(sql);
+					st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+					rs = st.executeQuery(sql);
 				} catch(ClassNotFoundException e) {
 					System.out.println("jdbc 드라이버를 찾지 못함");
 					e.printStackTrace();
@@ -255,18 +266,18 @@ public class Test1 {
 			public void actionPerformed(ActionEvent e) {
 				for(int i = 0; i<3;i++) {
 					try {
-						rst.previous();
+						rs.previous();
 					} catch(SQLException e1) {
 						e1.printStackTrace();
 					}
 				}
 				for(int i = 3; i>=0; i--) {
 					try {
-						if(rst.previous()) {
-							creater[i] = rst.getString(1);
-							title[i] = rst.getString(2);
-							port[i] = rst.getInt(3);
-							player[i] = rst.getInt(4);
+						if(rs.previous()) {
+							creater[i] = rs.getString(1);
+							title[i] = rs.getString(2);
+							port[i] = rs.getInt(3);
+							player[i] = rs.getInt(4);
 						} else {
 							creater[i] = null;
 							title[i] = null;
@@ -317,11 +328,11 @@ public class Test1 {
 			public void actionPerformed(ActionEvent e) {
 				for(int i = 0; i<4; i++) {
 					try {
-						if(rst.next()) {
-							creater[i] = rst.getString(1);
-							title[i] = rst.getString(2);
-							port[i] = rst.getInt(3);
-							player[i] = rst.getInt(4);
+						if(rs.next()) {
+							creater[i] = rs.getString(1);
+							title[i] = rs.getString(2);
+							port[i] = rs.getInt(3);
+							player[i] = rs.getInt(4);
 						} else {
 							creater[i] = null;
 							title[i] = null;
@@ -395,11 +406,8 @@ public class Test1 {
 				int port = Integer.parseInt(menu_port.getText());
 				
 				//sql에 정보 저장
-				Connection con = null;
 				DBConnect dc = new DBConnect();
 				con = dc.makeCon();
-				ResultSet rs = null;
-				PreparedStatement ps = null;
 				String sql = "insert into PRICK values(?, ?, ?, ?)";
 				try {
 					ps = con.prepareStatement(sql);
@@ -418,8 +426,6 @@ public class Test1 {
 				}
 				makePort = port;
 				
-				ServerSocket serverSocket = null;
-				Socket socket = null;
 				
 				try {
 					serverSocket = new ServerSocket(makePort);
@@ -427,8 +433,6 @@ public class Test1 {
 					socket = serverSocket.accept();
 					System.out.println("서버 연결됨");
 					wait_panel.setVisible(false);
-					gamePlay();
-					
 					//플레이어 값 2로 수정
 					sql = "select * from PRICK where port=?";
 					try {
@@ -450,6 +454,9 @@ public class Test1 {
 					} catch (SQLException e1) {
 						e1.printStackTrace();
 					}
+					//게임 플레이
+					gamePlayServer();
+					
 					
 				} catch(Exception e1) {
 					System.out.println(e1.getMessage());
@@ -526,7 +533,6 @@ public class Test1 {
 		play_button1.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if(player[0] == 1) {
-					Socket socket = null;
 					String myIp = null;
 					InetAddress local = null;
 					try {
@@ -539,7 +545,7 @@ public class Test1 {
 					try {
 						socket = new Socket(myIp, port[0]);
 						menu_panel.setVisible(false);
-						gamePlay();
+						gamePlayClient();
 					} catch (Exception e1) {
 						System.out.println(e1.getMessage());
 					}
@@ -550,7 +556,6 @@ public class Test1 {
 		play_button2.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if(player[1] == 1) {
-					Socket socket = null;
 					String myIp = null;
 					InetAddress local = null;
 					try {
@@ -563,7 +568,7 @@ public class Test1 {
 					try {
 						socket = new Socket(myIp, port[1]);
 						menu_panel.setVisible(false);
-						gamePlay();
+						gamePlayClient();
 					} catch (Exception e1) {
 						System.out.println(e1.getMessage());
 					}
@@ -574,7 +579,6 @@ public class Test1 {
 		play_button3.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if(player[2] == 1) {
-					Socket socket = null;
 					String myIp = null;
 					InetAddress local = null;
 					try {
@@ -587,7 +591,7 @@ public class Test1 {
 					try {
 						socket = new Socket(myIp, port[2]);
 						menu_panel.setVisible(false);
-						gamePlay();
+						gamePlayClient();
 					} catch (Exception e1) {
 						System.out.println(e1.getMessage());
 					}
@@ -598,7 +602,6 @@ public class Test1 {
 		play_button4.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if(player[3] == 1) {
-					Socket socket = null;
 					String myIp = null;
 					InetAddress local = null;
 					try {
@@ -611,7 +614,7 @@ public class Test1 {
 					try {
 						socket = new Socket(myIp, port[3]);
 						menu_panel.setVisible(false);
-						gamePlay();
+						gamePlayClient();
 					} catch (Exception e1) {
 						System.out.println(e1.getMessage());
 					}
@@ -620,9 +623,145 @@ public class Test1 {
 		});
 		
 	}
-	void gamePlay() {
+	
+	void gamePlayServer() {
 		frame.setBounds(600, 50, 730, 1040);
 		ImageIcon img1 = new ImageIcon("./Image/play_last_origin.jpg");
+		
+		JLabel Red_ball = new JLabel(new ImageIcon("./Image/Red_ball.png"));
+		class MyMouseListener implements MouseListener, MouseMotionListener {
+
+			@Override
+			public void mouseDragged(MouseEvent arg0) {
+				int Lx = arg0.getX(), Ly = arg0.getY();
+				if(Lx < 80) {
+					Lx = 80;
+				}
+				if(Lx > 630) {
+					Lx = 630;
+				}
+				if(Ly > 540) {
+					Ly = 540;
+				}
+				if(Ly < 935) {
+					Ly = 935;
+				}
+				
+				Red_ball.setBounds(Lx-50, Ly-50, 96, 91);
+				//Red_ball.setBounds(arg0.getX()-50, arg0.getY()-50, 96, 91);
+			}
+
+			@Override
+			public void mouseMoved(MouseEvent arg0) {
+				int Lx = arg0.getX(), Ly = arg0.getY();
+				if(Lx < 80) {
+					Lx = 80;
+				}
+				if(Lx > 630) {
+					Lx = 630;
+				}
+				if(Ly < 540) {
+					Ly = 540;
+				}
+				if(Ly > 935) {
+					Ly = 935;
+				}
+				
+				Red_ball.setBounds(Lx-50, Ly-50, 96, 91);		
+			}
+
+			@Override
+			public void mouseClicked(MouseEvent arg0) {
+				int Lx = arg0.getX(), Ly = arg0.getY();
+				if(Lx < 80) {
+					Lx = 80;
+				}
+				if(Lx > 630) {
+					Lx = 630;
+				}
+				if(Ly > 540) {
+					Ly = 540;
+				}
+				if(Ly < 935) {
+					Ly = 935;
+				}
+				
+				Red_ball.setBounds(Lx-50, Ly-50, 96, 91);	}
+
+			@Override
+			public void mouseEntered(MouseEvent arg0) {
+				int Lx = arg0.getX(), Ly = arg0.getY();
+				if(Lx < 80) {
+					Lx = 80;
+				}
+				if(Lx > 630) {
+					Lx = 630;
+				}
+				if(Ly > 540) {
+					Ly = 540;
+				}
+				if(Ly < 935) {
+					Ly = 935;
+				}
+				
+				Red_ball.setBounds(Lx-50, Ly-50, 96, 91);		}
+
+			@Override
+			public void mouseExited(MouseEvent arg0) {
+				int Lx = arg0.getX(), Ly = arg0.getY();
+				if(Lx < 80) {
+					Lx = 80;
+				}
+				if(Lx > 630) {
+					Lx = 630;
+				}
+				if(Ly < 540) {
+					Ly = 540;
+				}
+				if(Ly > 935) {
+					Ly = 935;
+				}
+				
+				Red_ball.setBounds(Lx-50, Ly-50, 96, 91);			}
+
+			@Override
+			public void mousePressed(MouseEvent arg0) {
+				int Lx = arg0.getX(), Ly = arg0.getY();
+				if(Lx < 80) {
+					Lx = 80;
+				}
+				if(Lx > 630) {
+					Lx = 630;
+				}
+				if(Ly > 540) {
+					Ly = 540;
+				}
+				if(Ly < 935) {
+					Ly = 935;
+				}
+				
+				Red_ball.setBounds(Lx-50, Ly-50, 96, 91);		}
+
+			@Override
+			public void mouseReleased(MouseEvent arg0) {
+				int Lx = arg0.getX(), Ly = arg0.getY();
+				if(Lx < 80) {
+					Lx = 80;
+				}
+				if(Lx > 630) {
+					Lx = 630;
+				}
+				if(Ly > 540) {
+					Ly = 540;
+				}
+				if(Ly < 935) {
+					Ly = 935;
+				}
+				
+				Red_ball.setBounds(Lx-50, Ly-50, 96, 91);		}
+			
+		}
+		
 		JPanel play_panel = new JPanel() {
 			public void paintComponent(Graphics g) {
 				g.drawImage(img1.getImage(), 0, 0, null);
@@ -635,5 +774,274 @@ public class Test1 {
 		play_panel.setVisible(true);
 		frame.getContentPane().add(play_panel);
 		play_panel.setLayout(null);
+		
+		//시작전 카운트
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		play_panel.add(Red_ball);
+		play_panel.addMouseListener(new MyMouseListener());
+		play_panel.addMouseMotionListener(new MyMouseListener());
+		
+		JLabel Yellow_ball = new JLabel(new ImageIcon("./Image/Yellow_ball.png"));
+		Yellow_ball.setBounds(326, 476, 64, 57);
+		play_panel.add(Yellow_ball);
+		
+		JLabel Blue_ball = new JLabel(new ImageIcon("./Image/Blue_ball.png"));
+		Blue_ball.setBounds(310, 118, 96, 91);
+		play_panel.add(Blue_ball);
+		
+		JLabel Red_bong = new JLabel(new ImageIcon("./Image/Red_bong.png"));
+		Red_bong.setBounds(660, 23, 64, 1053);
+		play_panel.add(Red_bong);
+		
+		JLabel Blue_bong = new JLabel(new ImageIcon("./Image/Blue_bong.png"));
+		Blue_bong.setBounds(26, 23, 64, 1053);
+		play_panel.add(Blue_bong);
+		
+		JLabel Yellow_bong = new JLabel(new ImageIcon("./Image/Yellow_bong.png"));
+		Yellow_bong.setBounds(0, 23, 346, 83);
+		play_panel.add(Yellow_bong);
+		
+		JLabel Green_bong = new JLabel(new ImageIcon("./Image/Green_bong.png"));
+		Green_bong.setBounds(406, 960, 318, 83);
+		play_panel.add(Green_bong);
+		
+		JLabel Perple_bong = new JLabel(new ImageIcon("./Image/Perple_bong.png"));
+		Perple_bong.setBounds(420, 12, 290, 104);
+		play_panel.add(Perple_bong);
+		
+		JLabel Blown_bong = new JLabel(new ImageIcon("./Image/Blown_bong.png"));
+		Blown_bong.setBounds(26, 950, 297, 104);
+		play_panel.add(Blown_bong);
+		
+		JLabel Own = new JLabel(new ImageIcon("./Image/Own.png"));
+		Own.setBounds(214, 330, 451, 350);
+		play_panel.add(Own);
+		
+		JLabel Mid_line = new JLabel(new ImageIcon("./Image/Mid_line.png"));
+		Mid_line.setBounds(26, 455, 663, 194);
+		play_panel.add(Mid_line);
+		
+		
+
+		play_panel.add(Red_ball);
+		play_panel.addMouseListener(new MyMouseListener());
+		play_panel.addMouseMotionListener(new MyMouseListener());
+	}
+	
+	void gamePlayClient() {
+		frame.setBounds(600, 50, 730, 1040);
+		ImageIcon img1 = new ImageIcon("./Image/play_last_origin.jpg");
+		
+		JLabel Red_ball = new JLabel(new ImageIcon("./Image/Red_ball.png"));
+		class MyMouseListener implements MouseListener, MouseMotionListener {
+
+			@Override
+			public void mouseDragged(MouseEvent arg0) {
+				int Lx = arg0.getX(), Ly = arg0.getY();
+				if(Lx < 80) {
+					Lx = 80;
+				}
+				if(Lx > 630) {
+					Lx = 630;
+				}
+				if(Ly > 540) {
+					Ly = 540;
+				}
+				if(Ly < 935) {
+					Ly = 935;
+				}
+				
+				Red_ball.setBounds(Lx-50, Ly-50, 96, 91);
+				//Red_ball.setBounds(arg0.getX()-50, arg0.getY()-50, 96, 91);
+			}
+
+			@Override
+			public void mouseMoved(MouseEvent arg0) {
+				int Lx = arg0.getX(), Ly = arg0.getY();
+				if(Lx < 80) {
+					Lx = 80;
+				}
+				if(Lx > 630) {
+					Lx = 630;
+				}
+				if(Ly < 540) {
+					Ly = 540;
+				}
+				if(Ly > 935) {
+					Ly = 935;
+				}
+				
+				Red_ball.setBounds(Lx-50, Ly-50, 96, 91);		
+			}
+
+			@Override
+			public void mouseClicked(MouseEvent arg0) {
+				int Lx = arg0.getX(), Ly = arg0.getY();
+				if(Lx < 80) {
+					Lx = 80;
+				}
+				if(Lx > 630) {
+					Lx = 630;
+				}
+				if(Ly > 540) {
+					Ly = 540;
+				}
+				if(Ly < 935) {
+					Ly = 935;
+				}
+				
+				Red_ball.setBounds(Lx-50, Ly-50, 96, 91);	}
+
+			@Override
+			public void mouseEntered(MouseEvent arg0) {
+				int Lx = arg0.getX(), Ly = arg0.getY();
+				if(Lx < 80) {
+					Lx = 80;
+				}
+				if(Lx > 630) {
+					Lx = 630;
+				}
+				if(Ly > 540) {
+					Ly = 540;
+				}
+				if(Ly < 935) {
+					Ly = 935;
+				}
+				
+				Red_ball.setBounds(Lx-50, Ly-50, 96, 91);		}
+
+			@Override
+			public void mouseExited(MouseEvent arg0) {
+				int Lx = arg0.getX(), Ly = arg0.getY();
+				if(Lx < 80) {
+					Lx = 80;
+				}
+				if(Lx > 630) {
+					Lx = 630;
+				}
+				if(Ly < 540) {
+					Ly = 540;
+				}
+				if(Ly > 935) {
+					Ly = 935;
+				}
+				
+				Red_ball.setBounds(Lx-50, Ly-50, 96, 91);			}
+
+			@Override
+			public void mousePressed(MouseEvent arg0) {
+				int Lx = arg0.getX(), Ly = arg0.getY();
+				if(Lx < 80) {
+					Lx = 80;
+				}
+				if(Lx > 630) {
+					Lx = 630;
+				}
+				if(Ly > 540) {
+					Ly = 540;
+				}
+				if(Ly < 935) {
+					Ly = 935;
+				}
+				
+				Red_ball.setBounds(Lx-50, Ly-50, 96, 91);		}
+
+			@Override
+			public void mouseReleased(MouseEvent arg0) {
+				int Lx = arg0.getX(), Ly = arg0.getY();
+				if(Lx < 80) {
+					Lx = 80;
+				}
+				if(Lx > 630) {
+					Lx = 630;
+				}
+				if(Ly > 540) {
+					Ly = 540;
+				}
+				if(Ly < 935) {
+					Ly = 935;
+				}
+				
+				Red_ball.setBounds(Lx-50, Ly-50, 96, 91);		}
+			
+		}
+		
+		JPanel play_panel = new JPanel() {
+			public void paintComponent(Graphics g) {
+				g.drawImage(img1.getImage(), 0, 0, null);
+				setOpaque(false);
+				super.paintComponent(g);
+			}
+		};
+		play_panel.setBackground(Color.WHITE);
+		play_panel.setBounds(0, 0, 832, 993);
+		play_panel.setVisible(true);
+		frame.getContentPane().add(play_panel);
+		play_panel.setLayout(null);
+		
+		//시작전 카운트
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		play_panel.add(Red_ball);
+		play_panel.addMouseListener(new MyMouseListener());
+		play_panel.addMouseMotionListener(new MyMouseListener());
+		
+		JLabel Yellow_ball = new JLabel(new ImageIcon("./Image/Yellow_ball.png"));
+		Yellow_ball.setBounds(326, 476, 64, 57);
+		play_panel.add(Yellow_ball);
+		
+		JLabel Blue_ball = new JLabel(new ImageIcon("./Image/Blue_ball.png"));
+		Blue_ball.setBounds(310, 118, 96, 91);
+		play_panel.add(Blue_ball);
+		
+		JLabel Red_bong = new JLabel(new ImageIcon("./Image/Red_bong.png"));
+		Red_bong.setBounds(660, 23, 64, 1053);
+		play_panel.add(Red_bong);
+		
+		JLabel Blue_bong = new JLabel(new ImageIcon("./Image/Blue_bong.png"));
+		Blue_bong.setBounds(26, 23, 64, 1053);
+		play_panel.add(Blue_bong);
+		
+		JLabel Yellow_bong = new JLabel(new ImageIcon("./Image/Yellow_bong.png"));
+		Yellow_bong.setBounds(0, 23, 346, 83);
+		play_panel.add(Yellow_bong);
+		
+		JLabel Green_bong = new JLabel(new ImageIcon("./Image/Green_bong.png"));
+		Green_bong.setBounds(406, 960, 318, 83);
+		play_panel.add(Green_bong);
+		
+		JLabel Perple_bong = new JLabel(new ImageIcon("./Image/Perple_bong.png"));
+		Perple_bong.setBounds(420, 12, 290, 104);
+		play_panel.add(Perple_bong);
+		
+		JLabel Blown_bong = new JLabel(new ImageIcon("./Image/Blown_bong.png"));
+		Blown_bong.setBounds(26, 950, 297, 104);
+		play_panel.add(Blown_bong);
+		
+		JLabel Own = new JLabel(new ImageIcon("./Image/Own.png"));
+		Own.setBounds(214, 330, 451, 350);
+		play_panel.add(Own);
+		
+		JLabel Mid_line = new JLabel(new ImageIcon("./Image/Mid_line.png"));
+		Mid_line.setBounds(26, 455, 663, 194);
+		play_panel.add(Mid_line);
+		
+		
+
+		play_panel.add(Red_ball);
+		play_panel.addMouseListener(new MyMouseListener());
+		play_panel.addMouseMotionListener(new MyMouseListener());
+		
 	}
 }

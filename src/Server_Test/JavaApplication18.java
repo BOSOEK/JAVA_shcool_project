@@ -4,7 +4,7 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import javax.swing.event.*;
-
+//711, 990
 class MouseListenerAllEx extends JFrame{
     JPanel contentPane = new JPanel();
     JLabel la = new JLabel("No Mouse Event");
