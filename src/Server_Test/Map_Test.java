@@ -2,11 +2,13 @@ package Server_Test;
 
 import java.awt.EventQueue;
 import java.awt.Graphics;
+import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.util.Locale;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
@@ -141,5 +143,10 @@ public class Map_Test {
 		btnNewButton.setBounds(360, 268, 105, 27);
 		panel.add(btnNewButton);
 		
+		Point point = btnNewButton.getLocation();
+		System.out.println("x : " + point.x);
+		System.out.println("y : " + point.y);
+		
+		Locale local = btnNewButton.getLocale();
 	}
 }
